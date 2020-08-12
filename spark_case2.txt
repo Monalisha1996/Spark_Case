@@ -1,0 +1,71 @@
+1.LOADING OF DATA IN TWO WAYS:
+
+from pyspark import SparkContext as sc
+from pyspark.sql import Row,functions
+from pyspark.sql import SQLContext
+from pyspark.sql import SparkSession
+import pandas as pd
+from pyspark.sql.types import *
+
+spark = SparkSession.builder.appName('FRIENDS').getOrCreate()
+print('Session created')
+schema = StructType().add("serial_number",IntegerType(),True)\
+                     .add("movie_name",StringType(),True)\
+                     .add("Year",IntegerType(),True).add("rating",DoubleType(),True)\
+                     .add("views",IntegerType(),True)
+m1 = spark.read.format("csv") \
+      .option("header", True) \
+      .schema(schema) \
+      .load("file:///home/monalisha/CMdata/Spark_Use_CASE_2_DATA.txt")
+print(m1)
+m1.show()
+
+import pandas as pd
+columns = ['id','movie_name','Year','rating','views']
+data = pd.read_csv('file:///home/monalisha/CMdata/Spark_Use_CASE_2_DATA.txt', names=columns)
+print(data)
+
+2. LOADING DATA INTO TABLES:
+
+m1.createOrReplaceTempView("movieTable") 
+x = spark.sql("create table movies_mona as select * from movieTable where Year > 1995")
+
+we can load pandas data frame into spark dataframe and then load into hive
+dataspark_df=spark.createDataFrame(data)// data is the pandas dataframe
+dataspark_df.show()
+
+3. The total number of movies
+
+from pyspark.sql.functions import col, countDistinct
+m1.agg(countDistinct(col("movie_name")).alias("count")).show()
+
+data['movie_name'].nunique()
+
+4. The maximum rating of movies
+
+m1.groupby('movie_name').max('rating').show()
+
+data.groupby(['movie_name'])['rating'].max()
+
+5.The number of movies that have maximum rating
+
+max_rating = m1.groupby().max('rating')
+m1.where(m1.rating == 4.5).count()
+
+max_rating = data['rating'].max()
+data[(data['rating'] == max_rating)]['movie_name'].count() 	
+
+6.The movies with ratings 1 and 2
+
+m1.where((m1.rating == 2) | (m1.rating == 2)).show()
+
+data[(data['rating'] == 1) | (data['rating'] == 2)]
+
+7.The list of years and number of movies released each year
+
+year_df = data.groupby(['Year'])
+for key,item in year_df:
+    print(year_df.get_group(key))
+	
+
+
